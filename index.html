@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Padrão de Projeto Command</title>
+  
+  <!-- Fontes e Ícones -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+
+  <style>
+  /* Reset e Variáveis Globais */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  :root {
+    --bg: #0b0d12; --bg2: #111318; --bg3: #16191f; --border: rgba(255, 255, 255, 0.08);
+    --text: #e2e4f0; --muted: #8b8ea0; --hint: #4e5068;
+    --pur: #a89cff; --pur-bg: rgba(168, 156, 255, 0.12); --pur-border: rgba(168, 156, 255, 0.28);
+    --teal: #5dcaa5; --teal-bg: rgba(93, 202, 165, 0.1);
+    --coral: #f0997b; --coral-bg: rgba(240, 153, 123, 0.1);
+    --amber: #ef9f27; --amber-bg: rgba(239, 159, 39, 0.1);
+    --pink: #ed93b1; --pink-bg: rgba(237, 147, 177, 0.1);
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4 { font-weight: 600; line-height: 1.2; }
+  p { color: var(--muted); font-size: 14px; line-height: 1.7; }
+  
+  .pg { background: var(--bg); display: flex; flex-direction: column; align-items: center; }
+  .container { width: 100%; max-width: 800px; margin: 0 auto; padding: 0 24px; }
+  
+  .divider { height: 1px; background: var(--border); width: 100%; max-width: 1000px; margin: 0 auto; }
+
+  /* Tags e Badges */
+  .badge { display: inline-flex; align-items: center; gap: 8px; background: var(--pur-bg); border: 1px solid var(--pur-border); color: var(--pur); font-size: 12px; padding: 6px 16px; border-radius: 100px; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 500; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--pur); }
+  .tag { font-size: 12px; padding: 4px 14px; border-radius: 100px; border: 1px solid var(--border); color: var(--text); display: inline-block; background: var(--bg2); }
+
+  /* Bloco de Código */
+  pre { background: #000; border: 1px solid var(--border); border-radius: 12px; padding: 24px; overflow-x: auto; font-family: monospace; font-size: 13px; line-height: 1.75; color: #cdd6f4; tab-size: 4; }
+  .kw { color: #c4b5fd; } .ty { color: #67e8f9; } .fn { color: #93c5fd; } .st { color: #86efac; } .cm { color: #6b7280; } .nu { color: #fdba74; } .op { color: #f9a8d4; }
+
+  /* Seções e Cabeçalhos Padronizados (Centralizados) */
+  .section { width: 100%; padding: 80px 0; }
+  .section-header { text-align: center; margin-bottom: 48px; display: flex; flex-direction: column; align-items: center; }
+  .section-eye { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--pur); margin-bottom: 12px; }
+  .section-h { font-size: clamp(24px, 4vw, 32px); color: var(--text); margin-bottom: 16px; }
+  .section-sub { font-size: 15px; color: var(--muted); max-width: 560px; text-align: center; }
+
+  /* --- Hero --- */
+  .hero { padding: 100px 24px 80px; text-align: center; width: 100%; border-bottom: 1px solid var(--border); }
+  .hero h1 { font-size: clamp(40px, 8vw, 80px); color: var(--text); margin: 24px auto 20px; max-width: 700px; letter-spacing: -0.02em; }
+  .hero h1 em { font-style: normal; color: var(--pur); }
+  .hero-sub { font-size: 18px; max-width: 600px; margin: 0 auto 40px; }
+  .hero-tags { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 32px; }
+  .year-badge { font-size: 13px; color: var(--hint); letter-spacing: 0.05em; font-weight: 500; }
+
+  /* --- Timeline --- */
+  .tl-inner { position: relative; margin: 0 auto; max-width: 600px; }
+  .tl-line { position: absolute; left: 19px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+  .tl-item { display: flex; gap: 24px; margin-bottom: 48px; position: relative; }
+  .tl-dot-wrap { flex-shrink: 0; width: 40px; display: flex; justify-content: center; padding-top: 2px; }
+  .tl-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--pur-bg); border: 2px solid var(--pur); flex-shrink: 0; z-index: 2; }
+  .tl-year { font-size: 12px; font-weight: 600; color: var(--pur); letter-spacing: 0.05em; margin-bottom: 6px; text-transform: uppercase; }
+  .tl-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+
+  /* --- Analogia --- */
+  .analogy { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .analogy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .ana-col { background: var(--bg3); border: 1px solid var(--border); border-radius: 16px; padding: 32px; }
+  .ana-col-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .ana-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .ana-col-title { font-size: 16px; font-weight: 600; color: var(--text); }
+  .ana-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 12px; }
+  .ana-label { font-size: 12px; font-weight: 500; color: var(--muted); width: 80px; flex-shrink: 0; }
+  .ana-val { font-size: 14px; color: var(--text); }
+  .ana-note { margin-top: 32px; background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; display: flex; gap: 12px; align-items: flex-start; }
+
+  /* --- Casos de Uso --- */
+  .uc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+  .uc-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 24px; transition: all 0.2s; }
+  .uc-card:hover { transform: translateY(-3px); border-color: var(--pur-border); background: var(--bg3); }
+  .uc-icon { font-size: 24px; margin-bottom: 16px; display: inline-block; }
+  .uc-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+  .uc-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* --- Componentes --- */
+  .components { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .comp-list { display: flex; flex-direction: column; gap: 16px; }
+  .comp-row { display: flex; gap: 20px; align-items: flex-start; background: var(--bg3); border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
+  .comp-num { font-size: 14px; color: var(--pur); font-weight: 600; width: 24px; flex-shrink: 0; }
+  .comp-name { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  .comp-desc { font-size: 14px; color: var(--muted); line-height: 1.6; }
+  .comp-tag { font-size: 11px; padding: 4px 10px; border-radius: 100px; font-family: monospace; }
+
+  /* --- Fluxo --- */
+  .flow-section { border-bottom: 1px solid var(--border); }
+  .flow-row { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  .fb { text-align: center; padding: 16px 20px; border-radius: 12px; min-width: 140px; }
+  .fb-lbl { font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .fb-name { font-size: 14px; font-weight: 600; }
+  .fa { color: var(--hint); font-size: 24px; display: flex; align-items: center; justify-content: center; }
+
+  /* --- Slides --- */
+  .snav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; justify-content: center; }
+  .snav-btn { font-size: 13px; font-family: inherit; font-weight: 500; padding: 8px 16px; border-radius: 100px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; transition: all 0.2s; }
+  .snav-btn.on { background: var(--pur-bg); border-color: var(--pur); color: var(--pur); }
+  .progress { height: 3px; background: var(--border); border-radius: 2px; margin-bottom: 32px; overflow: hidden; }
+  .pbar { height: 100%; background: var(--pur); border-radius: 2px; transition: width 0.3s ease; }
+  .slide { display: none; background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 40px; min-height: 480px; }
+  .slide.on { display: block; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+  .slide-step { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pur); margin-bottom: 16px; }
+  .slide h2 { font-size: 24px; margin-bottom: 12px; }
+  .slide .sdesc { font-size: 14px; margin-bottom: 24px; }
+  .slide-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 16px; }
+  .slide-hint { font-size: 13px; color: var(--text); display: flex; align-items: center; gap: 8px; font-weight: 500; }
+  .nav-row { display: flex; gap: 12px; }
+  .nav-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg3); color: var(--text); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .nav-btn:hover:not(:disabled) { background: var(--pur); border-color: var(--pur); color: #fff; }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* --- Tradeoffs --- */
+  .tradeoffs { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .to-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .to-card { border-radius: 16px; padding: 32px; }
+  .to-card.good { background: rgba(93,202,165,0.04); border: 1px solid rgba(93,202,165,0.2); }
+  .to-card.bad { background: rgba(240,153,123,0.04); border: 1px solid rgba(240,153,123,0.2); }
+  .to-head { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .to-head-title { font-size: 16px; font-weight: 600; }
+  .to-card.good .to-head-title { color: var(--teal); }
+  .to-card.bad .to-head-title { color: var(--coral); }
+  .to-item { display: flex; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
+  .to-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 8px; flex-shrink: 0; }
+  .to-card.good .to-dot { background: var(--teal); }
+  .to-card.bad .to-dot { background: var(--coral); }
+
+  /* ========================================================
+     NOVA SESSÃO DA EQUIPE (CORRIGIDA E CENTRALIZADA)
+  ======================================================== */
+  .team-grid { 
+    display: flex; 
+    flex-wrap: wrap; 
+    justify-content: center; 
+    gap: 24px; 
+    width: 100%; 
+    max-width: 900px; 
+    margin: 0 auto; 
+  }
+  .team-card { 
+    flex: 1 1 240px; 
+    max-width: 280px; 
+    background: var(--bg2); 
+    border: 1px solid var(--border); 
+    border-radius: 16px; 
+    padding: 36px 20px; 
+    text-align: center; 
+    transition: all 0.2s; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+  }
+  .team-card:hover { transform: translateY(-5px); background: var(--bg3); border-color: var(--pur-border); }
+  .team-avatar { width: 80px; height: 80px; border-radius: 50%; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; font-size: 32px; border: 2px solid; }
+  .team-name { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .team-role { font-size: 14px; color: var(--muted); }
+  
+  .t-pur { background: var(--pur-bg); color: var(--pur); border-color: var(--pur-border); }
+  .t-teal { background: var(--teal-bg); color: var(--teal); border-color: rgba(93,202,165,0.25); }
+  .t-coral { background: var(--coral-bg); color: var(--coral); border-color: rgba(240,153,123,0.25); }
+
+  /* --- Footer --- */
+  .footer { padding: 48px 24px; text-align: center; }
+
+  /* --- Responsividade Global --- */
+  @media (max-width: 768px) {
+    .analogy-grid, .to-grid { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 40px; }
+    .section { padding: 64px 0; }
+    .flow-row { flex-direction: column; }
+    .fa { transform: rotate(90deg); margin: 8px 0; }
+    .fb { width: 100%; max-width: 280px; }
+    .comp-row { flex-direction: column; gap: 12px; }
+    .slide { padding: 24px; min-height: auto; }
+    .slide-foot { flex-direction: column; align-items: flex-start; }
+    .nav-row { width: 100%; justify-content: flex-end; }
+  }
+
+  @media (max-width: 480px) {
+    .ana-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+  }
+  </style>
+</head>
+<body>
+
+<div class="pg">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="badge"><span class="dot"></span>Design Pattern · Comportamental · GoF</div>
+    <h1>Padrão de<br>Projeto <em>Command</em></h1>
+    <p class="hero-sub">Do livro dos Gang of Four até o seu código Go: tudo sobre encapsular operações como objetos e construir sistemas realmente desacoplados.</p>
+    <div class="hero-tags">
+      <span class="tag">Golang</span><span class="tag">Encapsulamento</span><span class="tag">Undo/Redo</span>
+      <span class="tag">Filas de tarefas</span><span class="tag">Transações</span><span class="tag">GUI</span>
+    </div>
+    <div class="year-badge" style="margin-top:24px">Apresentação Acadêmica · 2026</div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="section container">
+    <div class="section-header">
+      <div class="section-eye">Contexto histórico</div>
+      <div class="section-h">Como o Command surgiu</div>
+      <div class="section-sub">A ideia não nasceu do nada — ela é produto de décadas de evolução no pensamento sobre software orientado a objetos.</div>
+    </div>
+    <div class="tl-inner">
+      <div class="tl-line"></div>
+      
+      <div class="tl-item">
+        <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
+        <div>
+          <div class="tl-year">Anos 1970</div>
+          <div class="tl-title">Origens na programação funcional</div>
+          <div class="tl-desc">A ideia de tratar funções como cidadãos de primeira classe, passando-as como argumentos, vem de linguagens como Lisp. Isso plantou a semente do Command.</div>
+        </div>
+      </div>
+      
+      <div class="tl-item">
+        <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
+        <div>
+          <div class="tl-year">Anos 1980</div>
+          <div class="tl-title">Smalltalk e as GUIs</div>
+          <div class="tl-desc">Com as interfaces gráficas, ficou claro que botões precisavam disparar ações sem acoplamento direto. O Smalltalk explorou padrões que anteciparam o Command.</div>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
+        <div>
+          <div class="tl-year">1994</div>
+          <div class="tl-title">Gang of Four formaliza o padrão</div>
+          <div class="tl-desc">Publicação do famoso livro "Design Patterns", documentando formalmente o Command como um dos 23 padrões clássicos da engenharia de software.</div>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
+        <div>
+          <div class="tl-year">Hoje</div>
+          <div class="tl-title">Modernidade (Go, Rust, TS)</div>
+          <div class="tl-desc">Em linguagens como Go, a combinação de interfaces simples com structs torna a implementação do Command extremamente limpa, sem excesso de classes.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANALOGIA -->
+  <div class="section analogy">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eye">Mundo real</div>
+        <div class="section-h">A analogia do restaurante</div>
+        <div class="section-sub">O Command funciona exatamente como o fluxo de pedidos de um restaurante. Nenhuma parte precisa conhecer os detalhes das outras.</div>
+      </div>
+      
+      <div class="analogy-grid">
+        <div class="ana-col">
+          <div class="ana-col-header">
+            <div class="ana-icon" style="background:var(--pink-bg)"><i class="ti ti-building-store" style="color:var(--pink)"></i></div>
+            <div class="ana-col-title">No restaurante</div>
+          </div>
+          <div class="ana-row"><div class="ana-label">Cliente</div><div class="ana-val">Faz o pedido ao garçom sem saber cozinhar</div></div>
+          <div class="ana-row"><div class="ana-label">Garçom</div><div class="ana-val">Anota o pedido no papel e leva pra cozinha</div></div>
+          <div class="ana-row"><div class="ana-label">Papel</div><div class="ana-val">Contém as informações: prato, mesa, etc.</div></div>
+          <div class="ana-row"><div class="ana-label">Cozinha</div><div class="ana-val">Recebe o papel e prepara a comida</div></div>
+        </div>
+        
+        <div class="ana-col">
+          <div class="ana-col-header">
+            <div class="ana-icon" style="background:var(--pur-bg)"><i class="ti ti-code" style="color:var(--pur)"></i></div>
+            <div class="ana-col-title">No código</div>
+          </div>
+          <div class="ana-row"><div class="ana-label">Cliente</div><div class="ana-val">Configura comandos e associa receptores</div></div>
+          <div class="ana-row"><div class="ana-label">Invocador</div><div class="ana-val">Armazena o comando e chama Execute()</div></div>
+          <div class="ana-row"><div class="ana-label">Comando</div><div class="ana-val">Guarda a operação, parâmetros e o receptor</div></div>
+          <div class="ana-row"><div class="ana-label">Receptor</div><div class="ana-val">Executa a lógica real (a regra de negócio)</div></div>
+        </div>
+      </div>
+      
+      <div class="ana-note">
+        <i class="ti ti-bulb" style="color:var(--pur);font-size:20px;flex-shrink:0;margin-top:2px"></i>
+        <p style="color:var(--text);font-size:13px"><strong>Ponto chave:</strong> O garçom não sabe cozinhar. A cozinha não fala com o cliente. O <em>papel do pedido</em> é a ponte — assim como o objeto Command conecta Invocador e Receptor mantendo o desacoplamento.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CASOS DE USO -->
+  <div class="section container">
+    <div class="section-header">
+      <div class="section-eye">Aplicações</div>
+      <div class="section-h">Casos de uso reais</div>
+      <div class="section-sub">O Command aparece em mais lugares do que parece. Reconhecê-los é o primeiro passo para saber quando aplicar.</div>
+    </div>
+    
+    <div class="uc-grid">
+      <div class="uc-card">
+        <i class="ti ti-rotate-counterclockwise uc-icon" style="color:var(--pur)"></i>
+        <div class="uc-title">Undo / Redo</div>
+        <div class="uc-desc">Editores de texto e Photoshop. Cada ação é um comando na pilha. Ctrl+Z apenas chama o Undo().</div>
+      </div>
+      <div class="uc-card">
+        <i class="ti ti-queue uc-icon" style="color:var(--teal)"></i>
+        <div class="uc-title">Filas Assíncronas</div>
+        <div class="uc-desc">Sistemas que enfileiram comandos para execução posterior ou distribuída em background.</div>
+      </div>
+      <div class="uc-card">
+        <i class="ti ti-device-gamepad-2 uc-icon" style="color:var(--amber)"></i>
+        <div class="uc-title">Replay de Jogos</div>
+        <div class="uc-desc">Cada botão pressionado vira um comando. O replay apenas re-executa a lista de comandos gravada.</div>
+      </div>
+      <div class="uc-card">
+        <i class="ti ti-database-export uc-icon" style="color:var(--coral)"></i>
+        <div class="uc-title">Transações (BD)</div>
+        <div class="uc-desc">Comandos encapsulam commits e rollbacks, garantindo que operações em lote não falhem no meio.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPONENTES -->
+  <div class="section components">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eye">Estrutura</div>
+        <div class="section-h">Os 5 Componentes</div>
+        <div class="section-sub">Cada peça tem uma responsabilidade única e bem definida. Juntas, elas promovem a essência do padrão.</div>
+      </div>
+      
+      <div class="comp-list">
+        <div class="comp-row">
+          <div class="comp-num">01</div>
+          <div>
+            <div class="comp-name">Interface Command <span class="comp-tag" style="background:var(--pur-bg);color:var(--pur)">interface</span></div>
+            <div class="comp-desc">Declara o contrato. Em Go, geralmente possui apenas <code>Execute()</code> e <code>Undo()</code>. O Invocador só conhece essa interface, ignorando o que rola por trás.</div>
+          </div>
+        </div>
+        
+        <div class="comp-row">
+          <div class="comp-num">02</div>
+          <div>
+            <div class="comp-name">Comando Concreto <span class="comp-tag" style="background:var(--teal-bg);color:var(--teal)">struct</span></div>
+            <div class="comp-desc">Implementa a interface Command. Ele guarda uma referência para o receptor e os parâmetros necessários para a ação (ex: <code>EscreverComando</code>).</div>
+          </div>
+        </div>
+
+        <div class="comp-row">
+          <div class="comp-num">03</div>
+          <div>
+            <div class="comp-name">Receptor (Receiver) <span class="comp-tag" style="background:var(--amber-bg);color:var(--amber)">struct</span></div>
+            <div class="comp-desc">A regra de negócio real (ex: o próprio <code>Editor</code>). Ele sabe como executar o trabalho, mas não sabe que o padrão Command existe no sistema.</div>
+          </div>
+        </div>
+
+        <div class="comp-row">
+          <div class="comp-num">04</div>
+          <div>
+            <div class="comp-name">Invocador (Invoker) <span class="comp-tag" style="background:var(--coral-bg);color:var(--coral)">struct</span></div>
+            <div class="comp-desc">Responsável por disparar a requisição (ex: um botão de interface). Ele segura os Comandos numa pilha e chama <code>Execute()</code> quando necessário.</div>
+          </div>
+        </div>
+
+        <div class="comp-row">
+          <div class="comp-num">05</div>
+          <div>
+            <div class="comp-name">Cliente <span class="comp-tag" style="background:var(--pink-bg);color:var(--pink)">main()</span></div>
+            <div class="comp-desc">Monta todo o "Lego". Cria receptores, instancia os comandos passando o receptor pra eles, e entrega os comandos prontos para os invocadores.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLUXO VISUAL -->
+  <div class="section flow-section container">
+    <div class="section-header" style="margin-bottom:32px">
+      <div class="section-eye">Diagrama</div>
+      <div class="section-h">O fluxo de comunicação</div>
+    </div>
+    
+    <div class="flow-row">
+      <div class="fb" style="background:var(--pink-bg);border:1px solid rgba(237,147,177,0.3)">
+        <div class="fb-lbl">1. Configura</div><div class="fb-name" style="color:var(--pink)">Cliente</div>
+      </div>
+      <div class="fa"><i class="ti ti-arrow-right"></i></div>
+      
+      <div class="fb" style="background:var(--coral-bg);border:1px solid rgba(240,153,123,0.3)">
+        <div class="fb-lbl">2. Guarda e Dispara</div><div class="fb-name" style="color:var(--coral)">Invocador</div>
+      </div>
+      <div class="fa"><i class="ti ti-arrow-right"></i></div>
+      
+      <div class="fb" style="background:var(--pur-bg);border:1px solid var(--pur-border)">
+        <div class="fb-lbl">3. Encapsula</div><div class="fb-name" style="color:var(--pur)">Command</div>
+      </div>
+      <div class="fa"><i class="ti ti-arrow-right"></i></div>
+      
+      <div class="fb" style="background:var(--teal-bg);border:1px solid rgba(93,202,165,0.3)">
+        <div class="fb-lbl">4. Regra Real</div><div class="fb-name" style="color:var(--teal)">Receptor</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDES DE CÓDIGO -->
+  <div class="section container">
+    <div class="section-header">
+      <div class="section-eye">Mão na massa</div>
+      <div class="section-h">Construindo em Go</div>
+      <div class="section-sub">Vamos criar um Editor de Texto que suporta as ações de escrever, apagar e um sistema completo de Undo (desfazer).</div>
+    </div>
+    
+    <div class="snav" id="snav"></div>
+    <div class="progress"><div class="pbar" id="pbar" style="width:12.5%"></div></div>
+    <div id="sc"></div>
+  </div>
+
+  <!-- TRADEOFFS -->
+  <div class="section tradeoffs">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eye">Avaliação</div>
+        <div class="section-h">Quando usar e quando evitar</div>
+        <div class="section-sub">O padrão não é uma solução universal. Avalie os prós e contras antes de encher seu código de structs.</div>
+      </div>
+      
+      <div class="to-grid">
+        <div class="to-card good">
+          <div class="to-head"><i class="ti ti-check" style="color:var(--teal);font-size:20px"></i><div class="to-head-title">Use quando...</div></div>
+          <div class="to-item"><div class="to-dot"></div><p>Precisar de undo/redo com histórico de ações.</p></div>
+          <div class="to-item"><div class="to-dot"></div><p>Quiser enfileirar operações para execução assíncrona.</p></div>
+          <div class="to-item"><div class="to-dot"></div><p>Diferentes partes do sistema (menu, atalho) disparam a mesma ação.</p></div>
+        </div>
+        
+        <div class="to-card bad">
+          <div class="to-head"><i class="ti ti-x" style="color:var(--coral);font-size:20px"></i><div class="to-head-title">Evite quando...</div></div>
+          <div class="to-item"><div class="to-dot"></div><p>A operação for muito simples (uma chamada de função direta resolve).</p></div>
+          <div class="to-item"><div class="to-dot"></div><p>Nenhuma ação precisar ser desfeita ou enfileirada no futuro.</p></div>
+          <div class="to-item"><div class="to-dot"></div><p>A complexidade de criar 10 arquivos novos não compensa o problema.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SESSÃO DA EQUIPE -->
+  <div class="section container">
+    <div class="section-header">
+      <div class="section-eye">Apresentação</div>
+      <div class="section-h">Nossa Equipe</div>
+    </div>
+    
+    <div class="team-grid">
+      <div class="team-card">
+        <div class="team-avatar t-pur"><i class="ti ti-code"></i></div>
+        <div class="team-name">Yasmin de Souza</div>
+        <div class="team-role">Desenvolvedora</div>
+      </div>
+      
+      <div class="team-card">
+        <div class="team-avatar t-teal"><i class="ti ti-device-laptop"></i></div>
+        <div class="team-name">Clara Peretti</div>
+        <div class="team-role">Desenvolvedora</div>
+      </div>
+      
+      <div class="team-card">
+        <div class="team-avatar t-coral"><i class="ti ti-terminal-2"></i></div>
+        <div class="team-name">Juliana Sayuri</div>
+        <div class="team-role">Desenvolvedora</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="divider"></div>
+  <div class="footer">
+    <p>Trabalho Acadêmico · Padrões de Projeto (GoF) · 2026</p>
+  </div>
+
+</div>
+
+<script>
+const slides=[
+  {
+    title:"A interface Command",
+    hint:"Contrato único: Execute() e Undo()",
+    desc:"A interface Command define o contrato que todos os comandos concretos devem cumprir. O invocador vai depender apenas dessa interface, nunca de implementações específicas.",
+    code:`<span class="kw">package</span> main
+
+<span class="kw">import</span> <span class="st">"fmt"</span>
+
+<span class="cm">// Qualquer operação do sistema deve implementá-la.</span>
+<span class="kw">type</span> <span class="ty">Command</span> <span class="kw">interface</span> {
+    <span class="fn">Execute</span>()
+    <span class="fn">Undo</span>()
+}`
+  },
+  {
+    title:"O Receptor — Editor",
+    hint:"Lógica real de negócio, sem saber do padrão",
+    desc:"O receptor é o objeto que contém o comportamento real. Neste exemplo é um editor de texto. Ele é completamente independente e não sabe nada sobre Command.",
+    code:`<span class="kw">type</span> <span class="ty">Editor</span> <span class="kw">struct</span> {
+    Conteudo <span class="ty">string</span>
+}
+
+<span class="kw">func</span> (<span class="ty">e</span> *<span class="ty">Editor</span>) <span class="fn">Escrever</span>(texto <span class="ty">string</span>) {
+    e.Conteudo += texto
+    fmt.<span class="fn">Printf</span>(<span class="st">"[Editor] escreveu: %q\n"</span>, e.Conteudo)
+}
+
+<span class="kw">func</span> (<span class="ty">e</span> *<span class="ty">Editor</span>) <span class="fn">Apagar</span>(n <span class="ty">int</span>) {
+    <span class="kw">if</span> n > len(e.Conteudo) { n = len(e.Conteudo) }
+    e.Conteudo = e.Conteudo[:len(e.Conteudo)-n]
+    fmt.<span class="fn">Printf</span>(<span class="st">"[Editor] apagou %d chars\n"</span>, n)
+}`
+  },
+  {
+    title:"Comando concreto: Escrever",
+    hint:"Cada operação vira uma struct independente",
+    desc:"O EscreverComando implementa a interface. Ele guarda uma referência ao editor e o texto. O Undo() sabe quantos caracteres remover porque guardou o tamanho do texto.",
+    code:`<span class="kw">type</span> <span class="ty">EscreverComando</span> <span class="kw">struct</span> {
+    editor *<span class="ty">Editor</span>
+    texto  <span class="ty">string</span>
+}
+
+<span class="kw">func</span> (<span class="ty">c</span> *<span class="ty">EscreverComando</span>) <span class="fn">Execute</span>() {
+    c.editor.<span class="fn">Escrever</span>(c.texto)
+}
+
+<span class="kw">func</span> (<span class="ty">c</span> *<span class="ty">EscreverComando</span>) <span class="fn">Undo</span>() {
+    c.editor.<span class="fn">Apagar</span>(len(c.texto))
+}`
+  },
+  {
+    title:"Comando concreto: Apagar",
+    hint:"O Execute salva o estado antes de apagar",
+    desc:"Para desfazer o ato de apagar, precisamos saber exatamente o que foi removido. Por isso o Execute() salva o trecho apagado antes de remover — para o Undo() poder devolvê-lo.",
+    code:`<span class="kw">type</span> <span class="ty">ApagarComando</span> <span class="kw">struct</span> {
+    editor   *<span class="ty">Editor</span>
+    n        <span class="ty">int</span>
+    removido <span class="ty">string</span> <span class="cm">// guarda o estado pro Undo</span>
+}
+
+<span class="kw">func</span> (<span class="ty">c</span> *<span class="ty">ApagarComando</span>) <span class="fn">Execute</span>() {
+    n := c.n
+    <span class="kw">if</span> n > len(c.editor.Conteudo) { n = len(c.editor.Conteudo) }
+    
+    <span class="cm">// salva o que vai ser removido</span>
+    c.removido = c.editor.Conteudo[len(c.editor.Conteudo)-n:]
+    c.editor.<span class="fn">Apagar</span>(n)
+}
+
+<span class="kw">func</span> (<span class="ty">c</span> *<span class="ty">ApagarComando</span>) <span class="fn">Undo</span>() {
+    c.editor.<span class="fn">Escrever</span>(c.removido)
+}`
+  },
+  {
+    title:"O Invocador (Pilha de Undo)",
+    hint:"Pilha de histórico isolada do receptor",
+    desc:"O invocador gerencia o ciclo de vida. Ele não sabe o que cada comando faz — só chama Execute() e empilha. Quando o usuário clica em desfazer, ele desempilha e chama Undo().",
+    code:`<span class="kw">type</span> <span class="ty">Invocador</span> <span class="kw">struct</span> {
+    historico []<span class="ty">Command</span>
+}
+
+<span class="kw">func</span> (<span class="ty">inv</span> *<span class="ty">Invocador</span>) <span class="fn">Executar</span>(cmd <span class="ty">Command</span>) {
+    cmd.<span class="fn">Execute</span>()
+    inv.historico = <span class="fn">append</span>(inv.historico, cmd)
+}
+
+<span class="kw">func</span> (<span class="ty">inv</span> *<span class="ty">Invocador</span>) <span class="fn">Desfazer</span>() {
+    n := len(inv.historico)
+    <span class="kw">if</span> n == <span class="nu">0</span> { <span class="kw">return</span> }
+    
+    ultimo := inv.historico[n-<span class="nu">1</span>]
+    inv.historico = inv.historico[:n-<span class="nu">1</span>]
+    ultimo.<span class="fn">Undo</span>()
+}`
+  },
+  {
+    title:"O Cliente (Main)",
+    hint:"Receptor → Comandos → Invocador",
+    desc:"O cliente (main) conecta as peças. Ele cria o editor, os comandos apontando para o editor, e manda o invocador executar.",
+    code:`<span class="kw">func</span> <span class="fn">main</span>() {
+    editor := &<span class="ty">Editor</span>{}
+    inv := &<span class="ty">Invocador</span>{}
+    
+    <span class="cm">// Escreve frases</span>
+    inv.<span class="fn">Executar</span>(&<span class="ty">EscreverComando</span>{editor, <span class="st">"Olá, "</span>})
+    inv.<span class="fn">Executar</span>(&<span class="ty">EscreverComando</span>{editor, <span class="st">"mundo"</span>})
+    inv.<span class="fn">Executar</span>(&<span class="ty">EscreverComando</span>{editor, <span class="st">"!"</span>})
+    
+    <span class="cm">// Desfaz o "!" e o "mundo"</span>
+    inv.<span class="fn">Desfazer</span>() 
+    inv.<span class="fn">Desfazer</span>() 
+    
+    <span class="cm">// Apaga e desfaz o apagamento</span>
+    inv.<span class="fn">Executar</span>(&<span class="ty">ApagarComando</span>{editor, <span class="nu">4</span>})
+    inv.<span class="fn">Desfazer</span>() 
+}`
+  }
+];
+
+const sc=document.getElementById('sc');
+const snav=document.getElementById('snav');
+const pbar=document.getElementById('pbar');
+let cur=0;
+
+slides.forEach((s,i)=>{
+  const btn=document.createElement('button');
+  btn.className='snav-btn'+(i===0?' on':'');
+  btn.textContent=(i+1);
+  btn.onclick=()=>go(i);
+  snav.appendChild(btn);
+  
+  const d=document.createElement('div');
+  d.className='slide'+(i===0?' on':'');
+  d.innerHTML=`<div class="slide-step">Passo ${i+1} de ${slides.length}</div>
+<h2>${s.title}</h2>
+<p class="sdesc">${s.desc}</p>
+<pre>${s.code}</pre>
+<div class="slide-foot">
+  <span class="slide-hint"><i class="ti ti-bulb" style="color:var(--pur);font-size:18px"></i> ${s.hint}</span>
+  <div class="nav-row">
+    <button class="nav-btn" onclick="prev()" ${i===0?'disabled':''}><i class="ti ti-arrow-left"></i></button>
+    <button class="nav-btn" onclick="next()" ${i===slides.length-1?'disabled':''}><i class="ti ti-arrow-right"></i></button>
+  </div>
+</div>`;
+  sc.appendChild(d);
+});
+
+function go(i){
+  document.querySelectorAll('.slide')[cur].classList.remove('on');
+  document.querySelectorAll('.snav-btn')[cur].classList.remove('on');
+  cur=i;
+  document.querySelectorAll('.slide')[cur].classList.add('on');
+  document.querySelectorAll('.snav-btn')[cur].classList.add('on');
+  pbar.style.width=((cur+1)/slides.length*100)+'%';
+}
+function next(){if(cur<slides.length-1)go(cur+1);}
+function prev(){if(cur>0)go(cur-1);}
+</script>
+</body>
+</html>
